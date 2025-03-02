@@ -13,6 +13,7 @@ import com.easy.cache.annotation.CacheRefresh;
 import com.easy.cache.annotation.CacheUpdate;
 import com.easy.cache.annotation.Cached;
 import com.easy.cache.core.CacheManager;
+import com.easy.cache.core.CacheProcessor;
 
 /**
  * 缓存切面，用于拦截缓存注解

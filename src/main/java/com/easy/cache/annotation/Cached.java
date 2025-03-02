@@ -7,7 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
-import com.easy.cache.core.QuickConfig.CacheType;
+import com.easy.cache.core.CacheType;
 
 /**
  * 缓存注解，用于标记需要缓存的方法
