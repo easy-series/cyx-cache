@@ -4,155 +4,106 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
-        <relativePath/>
-    </parent>
-
-    <groupId>com.easy</groupId>
-    <artifactId>easy-cache</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <groupId>com.caoyixin</groupId>
+    <artifactId>cyx-cache</artifactId>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
-    <name>easy-cache</name>
-    <description>一个灵活、易用的多级缓存框架，类似于JetCache的功能实现</description>
+    <name>EasyCache</name>
+    <description>A simple and flexible caching framework</description>
 
     <modules>
-        <module>easy-cache-core</module>
-        <module>easy-cache-local</module>
-        <module>easy-cache-remote</module>
-        <module>easy-cache-multi</module>
-        <module>easy-cache-spring-boot-starter</module>
-        <module>easy-cache-annotation</module>
+        <module>cyx-cache-core</module>
+        <module>cyx-cache-redis</module>
+        <module>cyx-cache-spring-boot-starter</module>
     </modules>
 
     <properties>
-        <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <easy-cache.version>1.0.0-SNAPSHOT</easy-cache.version>
-        <caffeine.version>3.1.8</caffeine.version>
-        <redisson.version>3.25.2</redisson.version>
-        <lombok.version>1.18.30</lombok.version>
-        <slf4j.version>2.0.9</slf4j.version>
-        <junit.version>5.10.1</junit.version>
-        <guava.version>32.1.2-jre</guava.version>
-        <mockito.version>4.11.0</mockito.version>
-        <jedis.version>5.1.0</jedis.version>
-        <lettuce.version>6.3.0.RELEASE</lettuce.version>
-        <kryo.version>5.5.0</kryo.version>
-        <jackson.version>2.15.3</jackson.version>
-        <spring.version>5.3.31</spring.version>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        
+        <!-- 依赖版本 -->
+        <spring-boot.version>2.7.3</spring-boot.version>
+        <spring.version>5.3.22</spring.version>
+        <caffeine.version>3.1.2</caffeine.version>
+        <jackson.version>2.13.4</jackson.version>
+        <fastjson.version>2.0.14</fastjson.version>
+        <kryo.version>5.3.0</kryo.version>
+        <lettuce.version>6.2.0.RELEASE</lettuce.version>
+        <lombok.version>1.18.24</lombok.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <junit.version>5.9.0</junit.version>
+        <mockito.version>4.8.0</mockito.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <!-- 内部模块依赖 -->
             <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-core</artifactId>
-                <version>${easy-cache.version}</version>
+                <groupId>com.caoyixin</groupId>
+                <artifactId>cyx-cache-core</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-local</artifactId>
-                <version>${easy-cache.version}</version>
+                <groupId>com.caoyixin</groupId>
+                <artifactId>cyx-cache-redis</artifactId>
+                <version>${project.version}</version>
             </dependency>
+            
+            <!-- Spring相关依赖 -->
             <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-remote</artifactId>
-                <version>${easy-cache.version}</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-multi</artifactId>
-                <version>${easy-cache.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-spring-boot-starter</artifactId>
-                <version>${easy-cache.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.easy</groupId>
-                <artifactId>easy-cache-annotation</artifactId>
-                <version>${easy-cache.version}</version>
-            </dependency>
-
-            <!-- Spring Framework -->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-context</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-aop</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-
-            <!-- Caffeine 本地缓存 -->
+            
+            <!-- 缓存实现相关 -->
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
-            </dependency>
-
-            <!-- Redis 客户端 -->
-            <dependency>
-                <groupId>redis.clients</groupId>
-                <artifactId>jedis</artifactId>
-                <version>${jedis.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.lettuce</groupId>
                 <artifactId>lettuce-core</artifactId>
                 <version>${lettuce.version}</version>
             </dependency>
-
-            <!-- Redisson -->
-            <dependency>
-                <groupId>org.redisson</groupId>
-                <artifactId>redisson</artifactId>
-                <version>${redisson.version}</version>
-            </dependency>
-
-            <!-- 序列化库 -->
-            <dependency>
-                <groupId>com.esotericsoftware</groupId>
-                <artifactId>kryo</artifactId>
-                <version>${kryo.version}</version>
-            </dependency>
+            
+            <!-- 序列化相关 -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
-
-            <!-- Lombok -->
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kryo.version}</version>
+            </dependency>
+            
+            <!-- 工具类 -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
             </dependency>
-
-            <!-- Guava -->
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-            </dependency>
-
-            <!-- 日志 -->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
-
-            <!-- 测试 -->
+            
+            <!-- 测试依赖 -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
@@ -161,7 +112,7 @@
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
-                <artifactId>mockito-junit-jupiter</artifactId>
+                <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -169,27 +120,37 @@
     </dependencyManagement>
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.10.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>UTF-8</encoding>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.0.0-M7</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.2.1</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project> 
