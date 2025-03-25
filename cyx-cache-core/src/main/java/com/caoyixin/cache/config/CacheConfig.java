@@ -2,6 +2,7 @@ package com.caoyixin.cache.config;
 
 import com.caoyixin.cache.api.CacheType;
 import com.caoyixin.cache.consistency.ConsistencyMode;
+import com.caoyixin.cache.enums.ConsistencyType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,6 +35,15 @@ public class CacheConfig {
     private int localLimit = 200;
 
     /**
+     * 获取缓存最大容量
+     * 
+     * @return 缓存最大容量
+     */
+    public int getMaxSize() {
+        return localLimit;
+    }
+
+    /**
      * 本地缓存过期时间
      */
     private Duration localExpire;
@@ -42,6 +52,34 @@ public class CacheConfig {
      * 一致性模式
      */
     private ConsistencyMode consistencyMode = ConsistencyMode.WRITE_THROUGH;
+
+    /**
+     * 一致性类型
+     */
+    private ConsistencyType consistencyType;
+
+    /**
+     * 获取一致性类型
+     * 
+     * @return 一致性类型
+     */
+    public ConsistencyType getConsistencyType() {
+        if (consistencyType != null) {
+            return consistencyType;
+        }
+
+        // 从ConsistencyMode映射到ConsistencyType
+        switch (consistencyMode) {
+            case WRITE_THROUGH:
+                return ConsistencyType.WRITE_THROUGH;
+            case WRITE_BACK:
+                return ConsistencyType.WRITE_BACK;
+            case READ_ONLY:
+                return ConsistencyType.READ_ONLY;
+            default:
+                return ConsistencyType.WRITE_THROUGH;
+        }
+    }
 
     /**
      * 是否同步本地缓存

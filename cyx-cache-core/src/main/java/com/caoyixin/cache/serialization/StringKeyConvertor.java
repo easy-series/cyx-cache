@@ -2,9 +2,11 @@ package com.caoyixin.cache.serialization;
 
 /**
  * 字符串键转换器，直接使用toString方法
+ * 
+ * @param <K> 键类型
  */
-public class StringKeyConvertor implements KeyConvertor<Object> {
-    
+public class StringKeyConvertor<K> implements KeyConvertor<K> {
+
     /**
      * 将键对象转换为字符串
      * 
@@ -12,7 +14,7 @@ public class StringKeyConvertor implements KeyConvertor<Object> {
      * @return 字符串表示
      */
     @Override
-    public String convert(Object key) {
+    public String convert(K key) {
         return key == null ? "null" : key.toString();
     }
-} 
+}

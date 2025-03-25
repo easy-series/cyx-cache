@@ -12,5 +12,17 @@ public enum CacheEventType {
     /**
      * 移除事件
      */
-    REMOVE
+    REMOVE,
+
+    /**
+     * 刷新事件
+     */
+    REFRESH,
+
+    /**
+     * PUT 事件
+     */
+    PUT,
+
+    CLEAR,
 }

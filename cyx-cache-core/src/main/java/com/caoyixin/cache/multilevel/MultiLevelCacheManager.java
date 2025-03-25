@@ -2,21 +2,19 @@ package com.caoyixin.cache.multilevel;
 
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheManager;
+import com.caoyixin.cache.api.CacheType;
 import com.caoyixin.cache.api.ConsistencyStrategy;
 import com.caoyixin.cache.config.CacheConfig;
 import com.caoyixin.cache.consistency.ConsistencyStrategyFactory;
-import com.caoyixin.cache.enums.CacheType;
+import com.caoyixin.cache.consistency.DefaultConsistencyStrategyFactory;
 import com.caoyixin.cache.enums.ConsistencyType;
-import com.caoyixin.cache.event.CacheEventType;
-import com.caoyixin.cache.event.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheEventType;
+import com.caoyixin.cache.notification.CacheNotifier;
+import com.caoyixin.cache.notification.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -29,6 +27,31 @@ public class MultiLevelCacheManager implements CacheManager {
     private final CacheManager remoteCacheManager;
     private final Map<String, Cache<?, ?>> caches = new ConcurrentHashMap<>();
     private final String instanceId;
+    private final ConsistencyStrategyFactory strategyFactory;
+    private final CacheNotifier notifier;
+
+    /**
+     * 创建多级缓存管理器
+     *
+     * @param localCacheManager  本地缓存管理器
+     * @param remoteCacheManager 远程缓存管理器
+     * @param notifier           缓存通知器
+     * @param strategyFactory    一致性策略工厂
+     */
+    public MultiLevelCacheManager(CacheManager localCacheManager, CacheManager remoteCacheManager,
+            CacheNotifier notifier, ConsistencyStrategyFactory strategyFactory) {
+        if (localCacheManager == null) {
+            throw new IllegalArgumentException("本地缓存管理器不能为空");
+        }
+
+        this.localCacheManager = localCacheManager;
+        this.remoteCacheManager = remoteCacheManager;
+        this.notifier = notifier;
+        this.strategyFactory = strategyFactory;
+        this.instanceId = UUID.randomUUID().toString();
+
+        log.info("初始化MultiLevelCacheManager, instanceId={}", instanceId);
+    }
 
     /**
      * 创建多级缓存管理器
@@ -37,15 +60,7 @@ public class MultiLevelCacheManager implements CacheManager {
      * @param remoteCacheManager 远程缓存管理器
      */
     public MultiLevelCacheManager(CacheManager localCacheManager, CacheManager remoteCacheManager) {
-        if (localCacheManager == null) {
-            throw new IllegalArgumentException("本地缓存管理器不能为空");
-        }
-
-        this.localCacheManager = localCacheManager;
-        this.remoteCacheManager = remoteCacheManager;
-        this.instanceId = UUID.randomUUID().toString();
-
-        log.info("初始化MultiLevelCacheManager, instanceId={}", instanceId);
+        this(localCacheManager, remoteCacheManager, null, new DefaultConsistencyStrategyFactory());
     }
 
     @Override
@@ -122,9 +137,9 @@ public class MultiLevelCacheManager implements CacheManager {
     /**
      * 处理缓存更新事件
      *
-     * @param event 缓存更新事件
+     * @param event 缓存事件
      */
-    public void handleCacheUpdateEvent(CacheUpdateEvent event) {
+    public void handleCacheUpdateEvent(CacheEvent event) {
         if (event == null || event.getInstanceId().equals(instanceId)) {
             return; // 忽略自己发出的事件
         }
@@ -150,7 +165,7 @@ public class MultiLevelCacheManager implements CacheManager {
 
     @SuppressWarnings("unchecked")
     private <K, V> Cache<K, V> doCreateCache(String name, CacheConfig config) {
-        CacheType cacheType = config.getType();
+        CacheType cacheType = config.getCacheType();
 
         if (cacheType == CacheType.LOCAL) {
             // 只使用本地缓存
@@ -179,7 +194,7 @@ public class MultiLevelCacheManager implements CacheManager {
             ConsistencyType consistencyType = config.getConsistencyType() != null ? config.getConsistencyType()
                     : ConsistencyType.WRITE_THROUGH;
 
-            ConsistencyStrategy<K, V> strategy = ConsistencyStrategyFactory.createStrategy(
+            ConsistencyStrategy<K, V> strategy = strategyFactory.createStrategy(
                     consistencyType, caches);
 
             // 创建多级缓存
@@ -199,11 +214,11 @@ public class MultiLevelCacheManager implements CacheManager {
             throw new IllegalArgumentException("缓存配置不能为空");
         }
 
-        if (config.getType() == null) {
+        if (config.getCacheType() == null) {
             throw new IllegalArgumentException("缓存类型不能为空");
         }
 
-        if (config.getType() == CacheType.REMOTE || config.getType() == CacheType.BOTH) {
+        if (config.getCacheType() == CacheType.REMOTE || config.getCacheType() == CacheType.BOTH) {
             if (remoteCacheManager == null) {
                 throw new IllegalArgumentException("远程缓存类型需要配置远程缓存管理器");
             }

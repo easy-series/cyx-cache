@@ -2,8 +2,8 @@ package com.caoyixin.cache.support.simple;
 
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheManager;
+import com.caoyixin.cache.api.CacheType;
 import com.caoyixin.cache.config.CacheConfig;
-import com.caoyixin.cache.enums.CacheType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -101,8 +101,8 @@ public class SimpleCacheManager implements CacheManager {
      * @param config 缓存配置
      */
     private void validateCacheType(CacheConfig config) {
-        if (config.getType() != CacheType.LOCAL) {
-            throw new IllegalArgumentException("SimpleCacheManager仅支持LOCAL类型的缓存，不支持: " + config.getType());
+        if (config.getCacheType() != CacheType.LOCAL) {
+            throw new IllegalArgumentException("SimpleCacheManager仅支持LOCAL类型的缓存，不支持: " + config.getCacheType());
         }
     }
 }

@@ -1,7 +1,8 @@
 package com.caoyixin.cache.redis;
 
-import com.caoyixin.cache.event.CacheUpdateEvent;
 import com.caoyixin.cache.multilevel.MultiLevelCacheManager;
+import com.caoyixin.cache.notification.CacheEvent;
+import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.MessageListener;
@@ -83,7 +84,7 @@ public class RedisMessageListener implements MessageListener {
         }
 
         try {
-            CacheUpdateEvent event = objectMapper.readValue(body, CacheUpdateEvent.class);
+            CacheEvent event = objectMapper.readValue(body, CacheEvent.class);
 
             // 忽略自己发送的消息
             if (instanceId.equals(event.getInstanceId())) {
@@ -92,7 +93,7 @@ public class RedisMessageListener implements MessageListener {
 
             log.debug("收到Redis消息: channel={}, eventType={}, cacheName={}, key={}",
                     redisTemplate.getStringSerializer().deserialize(message.getChannel()),
-                    event.getType(), event.getCacheName(), event.getKey());
+                    event.getEventType(), event.getCacheName(), event.getKey());
 
             // 转发事件到缓存管理器
             cacheManager.handleCacheUpdateEvent(event);

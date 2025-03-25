@@ -69,7 +69,6 @@ public class CacheManagerBuilder {
         if (strategyFactory == null) {
             strategyFactory = new DefaultConsistencyStrategyFactory();
         }
-
         // 根据提供的组件选择合适的缓存管理器实现
         if (remoteCacheManager == null) {
             return localCacheManager; // 仅本地缓存

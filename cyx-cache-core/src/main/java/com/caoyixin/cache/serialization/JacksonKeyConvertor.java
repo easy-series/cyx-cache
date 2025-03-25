@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 基于Jackson的键转换器
+ * 
+ * @param <K> 键类型
  */
-public class JacksonKeyConvertor implements KeyConvertor<Object> {
+public class JacksonKeyConvertor<K> implements KeyConvertor<K> {
 
     private final ObjectMapper objectMapper;
 
@@ -34,7 +36,7 @@ public class JacksonKeyConvertor implements KeyConvertor<Object> {
      * @return JSON字符串
      */
     @Override
-    public String convert(Object key) {
+    public String convert(K key) {
         if (key == null) {
             return "null";
         }

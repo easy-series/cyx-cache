@@ -2,7 +2,8 @@ package com.caoyixin.cache.consistency;
 
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.ConsistencyStrategy;
-import com.caoyixin.cache.event.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -139,7 +140,7 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
     }
 
     @Override
-    public void handleCacheUpdate(CacheUpdateEvent event) {
+    public void handleCacheUpdate(CacheEvent event) {
         if (event == null) {
             return;
         }
@@ -148,8 +149,9 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
         @SuppressWarnings("unchecked")
         K key = (K) event.getKey();
 
-        switch (event.getType()) {
+        switch (event.getEventType()) {
             case PUT:
+            case UPDATE:
                 // 本地缓存也需要删除，因为无法获取远程缓存的值
                 remove(key);
                 break;
@@ -160,7 +162,7 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
                 clear();
                 break;
             default:
-                log.warn("未知的缓存更新事件类型: {}", event.getType());
+                log.warn("未知的缓存更新事件类型: {}", event.getEventType());
         }
     }
 

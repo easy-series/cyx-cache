@@ -42,13 +42,13 @@ public class RedisCacheManager implements CacheManager {
         this.redisTemplate = createRedisTemplate();
 
         // 注册默认的键转换器
-        registerKeyConvertor("string", new StringKeyConvertor());
-        registerKeyConvertor("fastjson", new FastjsonKeyConvertor());
-        registerKeyConvertor("jackson", new JacksonKeyConvertor());
+        registerKeyConvertor("string", new StringKeyConvertor<Object>());
+        registerKeyConvertor("fastjson", new FastjsonKeyConvertor<Object>());
+        registerKeyConvertor("jackson", new JacksonKeyConvertor<Object>());
 
         // 注册默认的值编码器和解码器
         registerValueCodec("java", new JavaValueEncoder(), new JavaValueDecoder());
-        registerValueCodec("jackson", new Jackson2ValueEncoder(), new Jackson2ValueDecoder<>(Object.class));
+        registerValueCodec("jackson", new Jackson2ValueEncoder<Object>(), new Jackson2ValueDecoder<>(Object.class));
 
         log.info("初始化RedisCacheManager, keyPrefix={}", this.keyPrefix);
     }
@@ -160,8 +160,8 @@ public class RedisCacheManager implements CacheManager {
      * @param config 缓存配置
      */
     private void validateCacheType(CacheConfig config) {
-        if (config.getType() != CacheType.REMOTE) {
-            throw new IllegalArgumentException("RedisCacheManager仅支持REMOTE类型的缓存，当前类型: " + config.getType());
+        if (config.getCacheType() != CacheType.REMOTE) {
+            throw new IllegalArgumentException("RedisCacheManager仅支持REMOTE类型的缓存，当前类型: " + config.getCacheType());
         }
     }
 

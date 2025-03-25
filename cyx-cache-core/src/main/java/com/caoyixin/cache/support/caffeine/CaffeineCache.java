@@ -43,7 +43,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
 
         Caffeine<Object, Object> builder = Caffeine.newBuilder()
                 .maximumSize(maxSize)
-                .removalListener((K key, V value, RemovalCause cause) -> {
+                .removalListener((Object key, Object value, RemovalCause cause) -> {
                     if (cause.wasEvicted()) {
                         stats.recordEviction();
                     }
@@ -67,7 +67,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         this.stats = new CacheStats(name);
 
         // 添加移除监听器
-        builder.removalListener((K key, V value, RemovalCause cause) -> {
+        builder.removalListener((Object key, Object value, RemovalCause cause) -> {
             if (cause.wasEvicted()) {
                 stats.recordEviction();
             }

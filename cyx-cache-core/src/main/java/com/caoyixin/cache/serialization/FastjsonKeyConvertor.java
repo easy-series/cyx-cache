@@ -5,8 +5,10 @@ import com.caoyixin.cache.exception.CacheException;
 
 /**
  * 基于Fastjson的键转换器
+ * 
+ * @param <K> 键类型
  */
-public class FastjsonKeyConvertor implements KeyConvertor<Object> {
+public class FastjsonKeyConvertor<K> implements KeyConvertor<K> {
 
     /**
      * 将键对象转换为字符串
@@ -15,7 +17,7 @@ public class FastjsonKeyConvertor implements KeyConvertor<Object> {
      * @return JSON字符串
      */
     @Override
-    public String convert(Object key) {
+    public String convert(K key) {
         if (key == null) {
             return "null";
         }

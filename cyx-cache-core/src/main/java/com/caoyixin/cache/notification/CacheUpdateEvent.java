@@ -1,8 +1,13 @@
 package com.caoyixin.cache.notification;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.NoArgsConstructor;
+
 /**
  * 缓存更新事件
  */
+@NoArgsConstructor
 public class CacheUpdateEvent extends CacheEvent {
     /**
      * 构造函数
@@ -11,7 +16,11 @@ public class CacheUpdateEvent extends CacheEvent {
      * @param key        缓存键
      * @param instanceId 实例ID
      */
-    public CacheUpdateEvent(String cacheName, Object key, String instanceId) {
+    @JsonCreator
+    public CacheUpdateEvent(
+            @JsonProperty("cacheName") String cacheName,
+            @JsonProperty("key") Object key,
+            @JsonProperty("instanceId") String instanceId) {
         super(cacheName, key, CacheEventType.UPDATE, instanceId);
     }
 }

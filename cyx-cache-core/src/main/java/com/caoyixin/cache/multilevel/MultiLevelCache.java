@@ -4,7 +4,8 @@ import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheStats;
 import com.caoyixin.cache.api.ConsistencyStrategy;
 import com.caoyixin.cache.config.CacheConfig;
-import com.caoyixin.cache.event.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheUpdateEvent;
+import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -43,7 +44,7 @@ public class MultiLevelCache<K, V> implements Cache<K, V> {
         if (caches == null || caches.isEmpty() || caches.size() < 2) {
             throw new IllegalArgumentException("缓存列表必须包含至少两个缓存实例");
         }
-        
+
         this.name = name;
         this.caches = new ArrayList<>(caches);
         this.consistencyStrategy = consistencyStrategy;
@@ -171,26 +172,26 @@ public class MultiLevelCache<K, V> implements Cache<K, V> {
         }
         return false;
     }
-    
+
     /**
      * 处理缓存更新事件
      *
-     * @param event 缓存更新事件
+     * @param event 缓存事件
      */
-    public void handleCacheUpdate(CacheUpdateEvent event) {
+    public void handleCacheUpdate(CacheEvent event) {
         if (event == null || event.getInstanceId().equals(instanceId)) {
             return; // 忽略自己发出的事件
         }
-        
+
         if (event.getCacheName().equals(name)) {
             try {
                 consistencyStrategy.handleCacheUpdate(event);
             } catch (Exception e) {
-                log.error("处理缓存更新事件异常, cacheName={}, eventType={}", name, event.getType(), e);
+                log.error("处理缓存更新事件异常, cacheName={}, eventType={}", name, event.getEventType(), e);
             }
         }
     }
-    
+
     /**
      * 获取缓存列表
      *
@@ -199,7 +200,7 @@ public class MultiLevelCache<K, V> implements Cache<K, V> {
     public List<Cache<K, V>> getCaches() {
         return new ArrayList<>(caches);
     }
-    
+
     /**
      * 获取实例ID
      *

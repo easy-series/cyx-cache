@@ -26,7 +26,7 @@ public interface CacheManager {
      * @param <V>    值类型
      * @return 创建的缓存
      */
-    <K, V> Cache<K, V> createCache(CacheConfig config);
+    <K, V> Cache<K, V> createCache(String name, CacheConfig config);
 
     /**
      * 获取或创建缓存
@@ -36,7 +36,7 @@ public interface CacheManager {
      * @param <V>    值类型
      * @return 已存在或新创建的缓存
      */
-    <K, V> Cache<K, V> getOrCreateCache(CacheConfig config);
+    <K, V> Cache<K, V> getOrCreateCache(String name, CacheConfig config);
 
     /**
      * 移除缓存

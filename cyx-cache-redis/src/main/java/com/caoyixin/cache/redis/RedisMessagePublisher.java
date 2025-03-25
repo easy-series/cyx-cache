@@ -1,8 +1,9 @@
 package com.caoyixin.cache.redis;
 
-import com.caoyixin.cache.event.CacheEventType;
-import com.caoyixin.cache.event.CacheUpdateEvent;
-import com.caoyixin.cache.serialization.ValueEncoder;
+import com.caoyixin.cache.notification.CacheEvent;
+import com.caoyixin.cache.notification.CacheEventType;
+import com.caoyixin.cache.notification.CacheRemoveEvent;
+import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class RedisMessagePublisher {
      * @param key       缓存键
      */
     public void publishUpdate(String cacheName, Object key) {
-        publish(CacheEventType.PUT, cacheName, key);
+        publish(CacheEventType.UPDATE, cacheName, key);
     }
 
     /**
@@ -71,7 +72,14 @@ public class RedisMessagePublisher {
      * @param key       缓存键
      */
     private void publish(CacheEventType eventType, String cacheName, Object key) {
-        CacheUpdateEvent event = new CacheUpdateEvent(eventType, cacheName, key, instanceId);
+        // 创建适当的缓存事件
+        CacheEvent event;
+        if (eventType == CacheEventType.REMOVE) {
+            event = new CacheRemoveEvent(cacheName, key, instanceId);
+        } else {
+            event = new CacheUpdateEvent(cacheName, key, instanceId);
+        }
+
         String topic = buildTopic(cacheName);
 
         try {

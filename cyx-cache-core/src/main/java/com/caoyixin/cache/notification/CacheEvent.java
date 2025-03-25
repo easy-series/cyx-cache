@@ -1,6 +1,11 @@
 package com.caoyixin.cache.notification;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -8,26 +13,32 @@ import lombok.ToString;
  */
 @Getter
 @ToString
+@NoArgsConstructor // 添加无参构造函数，用于Jackson反序列化
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "eventType", visible = true)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = CacheUpdateEvent.class, name = "UPDATE"),
+        @JsonSubTypes.Type(value = CacheRemoveEvent.class, name = "REMOVE")
+})
 public abstract class CacheEvent {
     /**
      * 缓存名称
      */
-    private final String cacheName;
+    private String cacheName;
 
     /**
      * 缓存键
      */
-    private final Object key;
+    private Object key;
 
     /**
      * 事件类型
      */
-    private final CacheEventType eventType;
+    private CacheEventType eventType;
 
     /**
      * 实例ID，用于识别事件来源
      */
-    private final String instanceId;
+    private String instanceId;
 
     /**
      * 构造函数
@@ -37,7 +48,12 @@ public abstract class CacheEvent {
      * @param eventType  事件类型
      * @param instanceId 实例ID
      */
-    protected CacheEvent(String cacheName, Object key, CacheEventType eventType, String instanceId) {
+    @JsonCreator
+    protected CacheEvent(
+            @JsonProperty("cacheName") String cacheName,
+            @JsonProperty("key") Object key,
+            @JsonProperty("eventType") CacheEventType eventType,
+            @JsonProperty("instanceId") String instanceId) {
         this.cacheName = cacheName;
         this.key = key;
         this.eventType = eventType;

@@ -33,8 +33,7 @@ public class CaffeineCacheManager implements CacheManager {
     }
 
     @Override
-    public <K, V> Cache<K, V> createCache(CacheConfig config) {
-        String name = config.getName();
+    public <K, V> Cache<K, V> createCache(String name, CacheConfig config) {
         if (caches.containsKey(name)) {
             throw new CacheException("缓存已存在: " + name);
         }
@@ -46,8 +45,7 @@ public class CaffeineCacheManager implements CacheManager {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> Cache<K, V> getOrCreateCache(CacheConfig config) {
-        String name = config.getName();
+    public <K, V> Cache<K, V> getOrCreateCache(String name, CacheConfig config) {
         return (Cache<K, V>) caches.computeIfAbsent(name, k -> doCreateCache(config));
     }
 
