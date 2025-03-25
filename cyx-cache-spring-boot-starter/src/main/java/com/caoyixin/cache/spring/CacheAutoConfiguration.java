@@ -3,9 +3,9 @@ package com.caoyixin.cache.spring;
 import com.caoyixin.cache.api.CacheManager;
 import com.caoyixin.cache.builder.CacheManagerBuilder;
 import com.caoyixin.cache.multilevel.MultiLevelCacheManager;
+import com.caoyixin.cache.redis.RedisCacheManager;
 import com.caoyixin.cache.redis.RedisMessageListener;
 import com.caoyixin.cache.redis.RedisMessagePublisher;
-import com.caoyixin.cache.redis.RedisCacheManager;
 import com.caoyixin.cache.support.caffeine.CaffeineCacheManager;
 import com.caoyixin.cache.support.simple.SimpleCacheManager;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
@@ -109,7 +108,7 @@ public class CacheAutoConfiguration {
      * 创建Redis消息监听器
      */
     @Bean
-    @ConditionalOnBean({ RedisMessageListenerContainer.class, MultiLevelCacheManager.class })
+    @ConditionalOnBean({RedisMessageListenerContainer.class, MultiLevelCacheManager.class})
     @ConditionalOnMissingBean(RedisMessageListener.class)
     @ConditionalOnProperty(name = "cyx.cache.redis.enabled", havingValue = "true")
     public RedisMessageListener redisMessageListener(

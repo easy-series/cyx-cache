@@ -4,9 +4,7 @@ import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheStats;
 import com.caoyixin.cache.exception.CacheException;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.Weigher;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;

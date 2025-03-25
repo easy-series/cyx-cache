@@ -2,7 +2,6 @@ package com.caoyixin.cache.api;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 /**

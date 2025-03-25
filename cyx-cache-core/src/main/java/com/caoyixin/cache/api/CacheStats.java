@@ -88,7 +88,7 @@ public class CacheStats {
     /**
      * 获取缓存命中率
      *
-     * @return 命中率(0-1)
+     * @return 命中率(0 - 1)
      */
     public double hitRate() {
         long hitCount = hits.sum();
@@ -109,7 +109,7 @@ public class CacheStats {
     /**
      * 获取加载成功率
      *
-     * @return 加载成功率(0-1)
+     * @return 加载成功率(0 - 1)
      */
     public double loadSuccessRate() {
         long totalLoads = loads.sum();

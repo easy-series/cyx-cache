@@ -51,12 +51,12 @@ public class RedisCache<K, V> implements Cache<K, V> {
      * @param keyPrefix         键前缀
      */
     public RedisCache(String name, RedisTemplate<String, byte[]> redisTemplate,
-            RedisConnectionFactory connectionFactory,
-            KeyConvertor<K> keyConvertor,
-            ValueEncoder<V> valueEncoder,
-            ValueDecoder<V> valueDecoder,
-            Duration defaultExpiration,
-            String keyPrefix) {
+                      RedisConnectionFactory connectionFactory,
+                      KeyConvertor<K> keyConvertor,
+                      ValueEncoder<V> valueEncoder,
+                      ValueDecoder<V> valueDecoder,
+                      Duration defaultExpiration,
+                      String keyPrefix) {
         this.name = name;
         this.redisTemplate = redisTemplate;
         this.connectionFactory = connectionFactory;

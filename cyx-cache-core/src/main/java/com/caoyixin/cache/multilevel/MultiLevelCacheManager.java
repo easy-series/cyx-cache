@@ -8,10 +8,9 @@ import com.caoyixin.cache.config.CacheConfig;
 import com.caoyixin.cache.consistency.ConsistencyStrategyFactory;
 import com.caoyixin.cache.consistency.DefaultConsistencyStrategyFactory;
 import com.caoyixin.cache.enums.ConsistencyType;
+import com.caoyixin.cache.notification.CacheEvent;
 import com.caoyixin.cache.notification.CacheEventType;
 import com.caoyixin.cache.notification.CacheNotifier;
-import com.caoyixin.cache.notification.CacheUpdateEvent;
-import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -39,7 +38,7 @@ public class MultiLevelCacheManager implements CacheManager {
      * @param strategyFactory    一致性策略工厂
      */
     public MultiLevelCacheManager(CacheManager localCacheManager, CacheManager remoteCacheManager,
-            CacheNotifier notifier, ConsistencyStrategyFactory strategyFactory) {
+                                  CacheNotifier notifier, ConsistencyStrategyFactory strategyFactory) {
         if (localCacheManager == null) {
             throw new IllegalArgumentException("本地缓存管理器不能为空");
         }

@@ -50,11 +50,11 @@ public class RedisCacheManagerTest {
 
         // 清理之前的数据
         cache.clear();
-        
+
         // 测试基本操作
         cache.put("key1", "value1");
         assertEquals("value1", cache.get("key1"));
-        
+
         // 清理测试数据
         cache.clear();
     }
@@ -67,14 +67,14 @@ public class RedisCacheManagerTest {
         // 首次调用应该创建缓存
         Cache<String, String> cache1 = cacheManager.getOrCreateCache("testCache", config);
         assertNotNull(cache1);
-        
+
         // 清理之前的数据
         cache1.clear();
 
         // 再次调用应该返回同一个缓存
         Cache<String, String> cache2 = cacheManager.getOrCreateCache("testCache", config);
         assertSame(cache1, cache2);
-        
+
         // 清理测试数据
         cache1.clear();
     }
@@ -106,7 +106,7 @@ public class RedisCacheManagerTest {
         Set<String> cacheNames = cacheManager.getCacheNames();
         assertTrue(cacheNames.contains("cache1"));
         assertTrue(cacheNames.contains("cache2"));
-        
+
         // 清理测试数据
         cacheManager.removeCache("cache1");
         cacheManager.removeCache("cache2");

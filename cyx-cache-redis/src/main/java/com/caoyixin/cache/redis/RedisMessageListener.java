@@ -2,7 +2,6 @@ package com.caoyixin.cache.redis;
 
 import com.caoyixin.cache.multilevel.MultiLevelCacheManager;
 import com.caoyixin.cache.notification.CacheEvent;
-import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.MessageListener;
@@ -37,10 +36,10 @@ public class RedisMessageListener implements MessageListener {
      * @param instanceId        实例ID
      */
     public RedisMessageListener(RedisMessageListenerContainer listenerContainer,
-            RedisTemplate<String, String> redisTemplate,
-            MultiLevelCacheManager cacheManager,
-            String topicPrefix,
-            String instanceId) {
+                                RedisTemplate<String, String> redisTemplate,
+                                MultiLevelCacheManager cacheManager,
+                                String topicPrefix,
+                                String instanceId) {
         this.listenerContainer = listenerContainer;
         this.redisTemplate = redisTemplate;
         this.cacheManager = cacheManager;

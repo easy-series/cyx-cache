@@ -14,7 +14,7 @@ public class Jackson2ValueDecoder<T> implements ValueDecoder<T> {
 
     /**
      * 创建Jackson2值解码器
-     * 
+     *
      * @param objectMapper 对象映射器
      * @param valueType    值类型
      */
@@ -25,7 +25,7 @@ public class Jackson2ValueDecoder<T> implements ValueDecoder<T> {
 
     /**
      * 创建Jackson2值解码器
-     * 
+     *
      * @param valueType 值类型
      */
     public Jackson2ValueDecoder(Class<T> valueType) {
@@ -34,7 +34,7 @@ public class Jackson2ValueDecoder<T> implements ValueDecoder<T> {
 
     /**
      * 将字节数组解码为值对象
-     * 
+     *
      * @param bytes 字节数组
      * @return 值对象
      */

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 基于Jackson2的值编码器
- * 
+ *
  * @param <T> 值类型
  */
 public class Jackson2ValueEncoder<T> implements ValueEncoder<T> {
@@ -21,7 +21,7 @@ public class Jackson2ValueEncoder<T> implements ValueEncoder<T> {
 
     /**
      * 创建Jackson2值编码器
-     * 
+     *
      * @param objectMapper 自定义的ObjectMapper
      */
     public Jackson2ValueEncoder(ObjectMapper objectMapper) {
@@ -30,7 +30,7 @@ public class Jackson2ValueEncoder<T> implements ValueEncoder<T> {
 
     /**
      * 将值对象编码为字节数组
-     * 
+     *
      * @param value 值对象
      * @return 字节数组
      */

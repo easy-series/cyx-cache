@@ -4,7 +4,6 @@ import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheStats;
 import com.caoyixin.cache.api.ConsistencyStrategy;
 import com.caoyixin.cache.config.CacheConfig;
-import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,7 +39,7 @@ public class MultiLevelCache<K, V> implements Cache<K, V> {
      * @param instanceId          实例ID
      */
     public MultiLevelCache(String name, List<Cache<K, V>> caches,
-            ConsistencyStrategy<K, V> consistencyStrategy, CacheConfig config, String instanceId) {
+                           ConsistencyStrategy<K, V> consistencyStrategy, CacheConfig config, String instanceId) {
         if (caches == null || caches.isEmpty() || caches.size() < 2) {
             throw new IllegalArgumentException("缓存列表必须包含至少两个缓存实例");
         }

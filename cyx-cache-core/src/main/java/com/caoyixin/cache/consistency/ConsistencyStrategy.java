@@ -23,7 +23,7 @@ public interface ConsistencyStrategy {
      * @param <V>         值类型
      */
     <K, V> void onPut(String cacheName, Cache<K, V> localCache, Cache<K, V> remoteCache,
-            K key, V value, Duration ttl, CacheNotifier notifier);
+                      K key, V value, Duration ttl, CacheNotifier notifier);
 
     /**
      * 处理缓存移除操作
@@ -37,7 +37,7 @@ public interface ConsistencyStrategy {
      * @param <V>         值类型
      */
     <K, V> void onRemove(String cacheName, Cache<K, V> localCache, Cache<K, V> remoteCache,
-            K key, CacheNotifier notifier);
+                         K key, CacheNotifier notifier);
 
     /**
      * 处理缓存获取操作

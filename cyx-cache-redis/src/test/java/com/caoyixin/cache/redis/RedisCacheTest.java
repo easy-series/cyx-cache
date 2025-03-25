@@ -25,14 +25,6 @@ public class RedisCacheTest {
     private RedisCache<String, TestUser> cache;
     private LettuceConnectionFactory connectionFactory;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TestUser implements Serializable {
-        private String name;
-        private int age;
-    }
-
     @BeforeEach
     public void setup() {
         // 配置Redis连接
@@ -157,5 +149,13 @@ public class RedisCacheTest {
         // 现在应该可以获取锁了
         assertTrue(cache.tryLock("lockKey", Duration.ofSeconds(5)));
         cache.unlock("lockKey");
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TestUser implements Serializable {
+        private String name;
+        private int age;
     }
 }

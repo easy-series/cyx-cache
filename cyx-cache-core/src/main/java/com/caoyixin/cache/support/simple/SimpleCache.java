@@ -6,7 +6,9 @@ import com.caoyixin.cache.exception.CacheException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -29,29 +31,6 @@ public class SimpleCache<K, V> implements Cache<K, V> {
     private final Map<K, CacheEntry<V>> cacheMap;
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Map<K, Lock> lockMap = new ConcurrentHashMap<>();
-
-    /**
-     * 缓存条目类
-     *
-     * @param <V> 值类型
-     */
-    private static class CacheEntry<V> {
-        private final V value;
-        private final long expireTime;
-
-        public CacheEntry(V value, long expireTime) {
-            this.value = value;
-            this.expireTime = expireTime;
-        }
-
-        public V getValue() {
-            return value;
-        }
-
-        public boolean isExpired() {
-            return expireTime > 0 && System.currentTimeMillis() >= expireTime;
-        }
-    }
 
     /**
      * 创建简单缓存
@@ -304,5 +283,28 @@ public class SimpleCache<K, V> implements Cache<K, V> {
             }
         }
         return false;
+    }
+
+    /**
+     * 缓存条目类
+     *
+     * @param <V> 值类型
+     */
+    private static class CacheEntry<V> {
+        private final V value;
+        private final long expireTime;
+
+        public CacheEntry(V value, long expireTime) {
+            this.value = value;
+            this.expireTime = expireTime;
+        }
+
+        public V getValue() {
+            return value;
+        }
+
+        public boolean isExpired() {
+            return expireTime > 0 && System.currentTimeMillis() >= expireTime;
+        }
     }
 }

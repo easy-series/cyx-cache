@@ -2,7 +2,6 @@ package com.caoyixin.cache.consistency;
 
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.ConsistencyStrategy;
-import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.caoyixin.cache.notification.CacheEvent;
 import lombok.extern.slf4j.Slf4j;
 

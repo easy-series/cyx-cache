@@ -5,14 +5,14 @@ import com.caoyixin.cache.exception.CacheException;
 
 /**
  * 基于Fastjson的键转换器
- * 
+ *
  * @param <K> 键类型
  */
 public class FastjsonKeyConvertor<K> implements KeyConvertor<K> {
 
     /**
      * 将键对象转换为字符串
-     * 
+     *
      * @param key 键对象
      * @return JSON字符串
      */

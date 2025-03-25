@@ -14,7 +14,7 @@ public class JavaValueEncoder implements ValueEncoder<Object> {
 
     /**
      * 将值对象编码为字节数组
-     * 
+     *
      * @param value 值对象
      * @return 字节数组
      */
@@ -29,7 +29,7 @@ public class JavaValueEncoder implements ValueEncoder<Object> {
         }
 
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
             oos.writeObject(value);
             oos.flush();
             return bos.toByteArray();

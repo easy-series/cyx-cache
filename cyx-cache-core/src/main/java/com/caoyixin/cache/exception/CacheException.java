@@ -7,7 +7,7 @@ public class CacheException extends RuntimeException {
 
     /**
      * 创建缓存异常
-     * 
+     *
      * @param message 异常信息
      */
     public CacheException(String message) {
@@ -16,7 +16,7 @@ public class CacheException extends RuntimeException {
 
     /**
      * 创建缓存异常
-     * 
+     *
      * @param message 异常信息
      * @param cause   原始异常
      */
@@ -26,7 +26,7 @@ public class CacheException extends RuntimeException {
 
     /**
      * 创建缓存异常
-     * 
+     *
      * @param cause 原始异常
      */
     public CacheException(Throwable cause) {

@@ -33,10 +33,60 @@ public class CacheConfig {
      * 本地缓存最大容量
      */
     private int localLimit = 200;
+    /**
+     * 本地缓存过期时间
+     */
+    private Duration localExpire;
+    /**
+     * 一致性模式
+     */
+    private ConsistencyMode consistencyMode = ConsistencyMode.WRITE_THROUGH;
+    /**
+     * 一致性类型
+     */
+    private ConsistencyType consistencyType;
+    /**
+     * 是否同步本地缓存
+     */
+    private boolean syncLocal = true;
+    /**
+     * 键转换器类型
+     */
+    private String keyConvertor = "fastjson";
+    /**
+     * 值编码器类型
+     */
+    private String valueEncoder = "java";
+    /**
+     * 值解码器类型
+     */
+    private String valueDecoder = "java";
+    /**
+     * 是否启用缓存统计
+     */
+    private boolean statsEnabled = true;
+    /**
+     * 是否防止缓存击穿
+     */
+    private boolean penetrationProtect = false;
+    /**
+     * 刷新策略配置
+     */
+    private RefreshPolicy refreshPolicy;
+
+    /**
+     * 创建缓存配置构建器
+     *
+     * @param name 缓存名称
+     * @return 构建器
+     */
+    public static Builder newBuilder(String name) {
+        return new Builder(name);
+    }
 
     /**
      * 获取缓存最大容量
-     * 
+     *
      * @return 缓存最大容量
      */
     public int getMaxSize() {
@@ -44,23 +94,8 @@ public class CacheConfig {
     }
 
     /**
-     * 本地缓存过期时间
-     */
-    private Duration localExpire;
-
-    /**
-     * 一致性模式
-     */
-    private ConsistencyMode consistencyMode = ConsistencyMode.WRITE_THROUGH;
-
-    /**
-     * 一致性类型
-     */
-    private ConsistencyType consistencyType;
-
-    /**
      * 获取一致性类型
-     * 
+     *
      * @return 一致性类型
      */
     public ConsistencyType getConsistencyType() {
@@ -80,41 +115,6 @@ public class CacheConfig {
                 return ConsistencyType.WRITE_THROUGH;
         }
     }
-
-    /**
-     * 是否同步本地缓存
-     */
-    private boolean syncLocal = true;
-
-    /**
-     * 键转换器类型
-     */
-    private String keyConvertor = "fastjson";
-
-    /**
-     * 值编码器类型
-     */
-    private String valueEncoder = "java";
-
-    /**
-     * 值解码器类型
-     */
-    private String valueDecoder = "java";
-
-    /**
-     * 是否启用缓存统计
-     */
-    private boolean statsEnabled = true;
-
-    /**
-     * 是否防止缓存击穿
-     */
-    private boolean penetrationProtect = false;
-
-    /**
-     * 刷新策略配置
-     */
-    private RefreshPolicy refreshPolicy;
 
     /**
      * 获取本地缓存配置
@@ -153,16 +153,6 @@ public class CacheConfig {
         config.setPenetrationProtect(this.penetrationProtect);
         config.setRefreshPolicy(this.refreshPolicy);
         return config;
-    }
-
-    /**
-     * 创建缓存配置构建器
-     * 
-     * @param name 缓存名称
-     * @return 构建器
-     */
-    public static Builder newBuilder(String name) {
-        return new Builder(name);
     }
 
     /**

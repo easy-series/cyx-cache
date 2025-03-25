@@ -1,6 +1,5 @@
 package com.caoyixin.cache.api;
 
-import com.caoyixin.cache.notification.CacheUpdateEvent;
 import com.caoyixin.cache.notification.CacheEvent;
 
 import java.time.Duration;

@@ -33,7 +33,7 @@ public class RefreshPolicy {
 
     /**
      * 创建刷新策略
-     * 
+     *
      * @return 刷新策略
      */
     public static RefreshPolicy newPolicy() {
@@ -42,7 +42,7 @@ public class RefreshPolicy {
 
     /**
      * 设置刷新间隔
-     * 
+     *
      * @param refreshInterval 刷新间隔
      * @return 当前对象
      */
@@ -54,7 +54,7 @@ public class RefreshPolicy {
 
     /**
      * 设置最后一次访问后停止刷新的时间
-     * 
+     *
      * @param duration 停止刷新的时间
      * @return 当前对象
      */
@@ -65,7 +65,7 @@ public class RefreshPolicy {
 
     /**
      * 设置是否使用异步刷新
-     * 
+     *
      * @param asyncRefresh 是否异步刷新
      * @return 当前对象
      */
