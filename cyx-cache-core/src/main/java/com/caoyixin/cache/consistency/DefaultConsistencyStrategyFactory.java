@@ -2,7 +2,6 @@ package com.caoyixin.cache.consistency;
 
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.ConsistencyStrategy;
-import com.caoyixin.cache.config.CacheConfig;
 import com.caoyixin.cache.enums.ConsistencyType;
 
 import java.util.List;
@@ -11,20 +10,6 @@ import java.util.List;
  * 默认一致性策略工厂实现
  */
 public class DefaultConsistencyStrategyFactory implements ConsistencyStrategyFactory {
-
-    @Override
-    public <K, V> ConsistencyStrategy createStrategy(CacheConfig config, List<Cache<K, V>> caches) {
-        switch (config.getConsistencyMode()) {
-            case WRITE_THROUGH:
-                return new WriteThroughStrategy<>(caches);
-            case WRITE_BACK:
-                throw new UnsupportedOperationException("写回策略尚未实现");
-            case READ_ONLY:
-                throw new UnsupportedOperationException("只读策略尚未实现");
-            default:
-                throw new IllegalArgumentException("不支持的一致性模式: " + config.getConsistencyMode());
-        }
-    }
 
     @Override
     public <K, V> ConsistencyStrategy<K, V> createStrategy(ConsistencyType type, List<Cache<K, V>> caches) {

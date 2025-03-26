@@ -1,161 +1,228 @@
 package com.caoyixin.cache.redis;
 
-import com.caoyixin.cache.serialization.Jackson2ValueDecoder;
-import com.caoyixin.cache.serialization.Jackson2ValueEncoder;
-import com.caoyixin.cache.serialization.StringKeyConvertor;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import com.caoyixin.cache.api.Cache;
+import com.caoyixin.cache.config.CacheConfig;
+import com.caoyixin.cache.serialization.FastjsonKeyConvertor;
+import com.caoyixin.cache.serialization.JavaValueDecoder;
+import com.caoyixin.cache.serialization.JavaValueEncoder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
+/**
+ * Redis缓存核心功能测试
+ */
 public class RedisCacheTest {
 
-    private RedisCache<String, TestUser> cache;
-    private LettuceConnectionFactory connectionFactory;
+    private RedisConnectionFactory connectionFactory;
+    private RedisCacheManager cacheManager;
+    private String keyPrefix;
 
-    @BeforeEach
-    public void setup() {
-        // 配置Redis连接
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName("localhost"); // 使用本地Redis
-        config.setPort(6379); // 默认端口
-        config.setPassword("123456"); // 设置Redis密码
-        // config.setPassword("your_password"); // 如果有密码，取消注释并设置
+    @Before
+    public void setUp() {
+        connectionFactory = RedisTestConfig.createConnectionFactory();
+        keyPrefix = RedisTestConfig.getTestKeyPrefix();
+        cacheManager = new RedisCacheManager(connectionFactory, keyPrefix);
+    }
 
-        connectionFactory = new LettuceConnectionFactory(config);
-        connectionFactory.afterPropertiesSet();
+    @After
+    public void tearDown() {
+        if (cacheManager != null) {
+            cacheManager.close();
+        }
+        RedisTestConfig.cleanTestEnvironment(connectionFactory);
+    }
 
-        RedisTemplate<String, byte[]> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(connectionFactory);
-        redisTemplate.setKeySerializer(new org.springframework.data.redis.serializer.StringRedisSerializer());
-        redisTemplate.setValueSerializer(RedisValueSerializer.INSTANCE);
-        redisTemplate.afterPropertiesSet();
+    @Test
+    public void testBasicOperations() {
+        // 创建缓存
+        String cacheName = "testBasicOps";
+        CacheConfig config = CacheConfig.builder()
+                .name(cacheName)
+                .cacheType(com.caoyixin.cache.api.CacheType.REMOTE)
+                .expire(Duration.ofMinutes(5))
+                .build();
 
-        // 创建RedisCache
-        cache = new RedisCache<>(
-                "testCache",
-                redisTemplate,
-                connectionFactory,
-                new StringKeyConvertor<String>(),
-                new Jackson2ValueEncoder<TestUser>(),
-                new Jackson2ValueDecoder<>(TestUser.class),
-                Duration.ofMinutes(5),
-                "test:");
+        Cache<String, String> cache = cacheManager.createCache(cacheName, config);
+        assertNotNull("Cache should be created", cache);
 
-        // 清空测试使用的key，确保测试环境干净
+        // 测试放入和获取
+        String key = "test-key";
+        String value = "test-value";
+        cache.put(key, value);
+
+        String retrieved = cache.get(key);
+        assertEquals("Retrieved value should match", value, retrieved);
+
+        // 测试删除
+        assertTrue("Remove should return true for existing key", cache.remove(key));
+        assertNull("Value should be null after removal", cache.get(key));
+
+        // 测试TTL
+        String ttlKey = "ttl-key";
+        cache.put(ttlKey, value, Duration.ofMillis(100));
+
+        assertEquals("Value should be available before expiration", value, cache.get(ttlKey));
+
+        try {
+            Thread.sleep(200); // 等待过期
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        assertNull("Value should be null after expiration", cache.get(ttlKey));
+    }
+
+    @Test
+    public void testBatchOperations() {
+        // 创建缓存
+        String cacheName = "testBatchOps";
+        CacheConfig config = CacheConfig.builder()
+                .name(cacheName)
+                .cacheType(com.caoyixin.cache.api.CacheType.REMOTE)
+                .expire(Duration.ofMinutes(5))
+                .build();
+
+        Cache<String, String> cache = cacheManager.createCache(cacheName, config);
+
+        // 批量放入
+        Map<String, String> batch = new HashMap<>();
+        for (int i = 0; i < 10; i++) {
+            batch.put("batch-key-" + i, "batch-value-" + i);
+        }
+
+        cache.putAll(batch);
+
+        // 验证批量操作
+        for (int i = 0; i < 10; i++) {
+            String key = "batch-key-" + i;
+            String expectedValue = "batch-value-" + i;
+            assertEquals("Batch value should be correctly stored", expectedValue, cache.get(key));
+        }
+
+        // 测试清空
         cache.clear();
-    }
 
-    @Test
-    public void testPutAndGet() {
-        TestUser user = new TestUser("张三", 30);
-        cache.put("user1", user);
-
-        TestUser cachedUser = cache.get("user1");
-        assertNotNull(cachedUser);
-        assertEquals("张三", cachedUser.getName());
-        assertEquals(30, cachedUser.getAge());
-    }
-
-    @Test
-    public void testExpiration() throws InterruptedException {
-        TestUser user = new TestUser("临时用户", 25);
-        cache.put("tempUser", user, Duration.ofSeconds(1));
-
-        assertNotNull(cache.get("tempUser"));
-
-        // 等待过期
-        TimeUnit.SECONDS.sleep(2);
-
-        assertNull(cache.get("tempUser"), "缓存应该已过期");
-    }
-
-    @Test
-    public void testPutAll() {
-        Map<String, TestUser> users = new HashMap<>();
-        users.put("user1", new TestUser("张三", 30));
-        users.put("user2", new TestUser("李四", 25));
-
-        cache.putAll(users);
-
-        assertEquals("张三", cache.get("user1").getName());
-        assertEquals("李四", cache.get("user2").getName());
-    }
-
-    @Test
-    public void testRemove() {
-        TestUser user = new TestUser("将被删除", 40);
-        cache.put("toRemove", user);
-
-        assertNotNull(cache.get("toRemove"));
-        assertTrue(cache.remove("toRemove"));
-        assertNull(cache.get("toRemove"));
+        for (int i = 0; i < 10; i++) {
+            assertNull("Value should be null after clear", cache.get("batch-key-" + i));
+        }
     }
 
     @Test
     public void testComputeIfAbsent() {
-        TestUser user = cache.computeIfAbsent("computed", key -> new TestUser("计算生成", 35));
+        // 创建缓存
+        String cacheName = "testCompute";
+        CacheConfig config = CacheConfig.builder()
+                .name(cacheName)
+                .cacheType(com.caoyixin.cache.api.CacheType.REMOTE)
+                .expire(Duration.ofMinutes(5))
+                .build();
 
-        assertNotNull(user);
-        assertEquals("计算生成", user.getName());
-        assertEquals(35, user.getAge());
+        Cache<String, String> cache = cacheManager.createCache(cacheName, config);
 
-        // 第二次调用应该直接返回缓存值
-        TestUser cachedUser = cache.computeIfAbsent("computed", key -> new TestUser("不会被使用", 99));
-        assertEquals("计算生成", cachedUser.getName());
-        assertEquals(35, cachedUser.getAge());
+        // 定义计算函数，记录调用次数
+        final AtomicInteger computeCount = new AtomicInteger(0);
+        Function<String, String> computeFunction = key -> {
+            computeCount.incrementAndGet();
+            return "computed-" + key;
+        };
+
+        // 第一次调用应该执行计算函数
+        String key = "compute-key";
+        String value = cache.computeIfAbsent(key, computeFunction);
+
+        assertEquals("Computed value should be correct", "computed-" + key, value);
+        assertEquals("Compute function should be called once", 1, computeCount.get());
+
+        // 第二次调用应该直接返回缓存值，不再执行计算函数
+        value = cache.computeIfAbsent(key, computeFunction);
+
+        assertEquals("Computed value should be correct", "computed-" + key, value);
+        assertEquals("Compute function should still be called once", 1, computeCount.get());
+
+        // 测试带TTL的计算
+        String ttlKey = "compute-ttl-key";
+        value = cache.computeIfAbsent(ttlKey, computeFunction, Duration.ofMillis(100));
+
+        assertEquals("Computed value with TTL should be correct", "computed-" + ttlKey, value);
+        assertEquals("Compute function should be called again", 2, computeCount.get());
+
+        try {
+            Thread.sleep(200); // 等待过期
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 再次计算过期键，应该再次调用计算函数
+        value = cache.computeIfAbsent(ttlKey, computeFunction);
+
+        assertEquals("Recomputed value should be correct", "computed-" + ttlKey, value);
+        assertEquals("Compute function should be called one more time", 3, computeCount.get());
     }
 
     @Test
-    public void testClear() {
-        cache.put("user1", new TestUser("张三", 30));
-        cache.put("user2", new TestUser("李四", 25));
+    public void testConcurrentComputeIfAbsent() throws InterruptedException {
+        // 创建缓存
+        String cacheName = "testConcurrentCompute";
+        CacheConfig config = CacheConfig.builder()
+                .name(cacheName)
+                .cacheType(com.caoyixin.cache.api.CacheType.REMOTE)
+                .expire(Duration.ofMinutes(5))
+                .build();
 
-        assertNotNull(cache.get("user1"));
-        assertNotNull(cache.get("user2"));
+        Cache<String, Integer> cache = cacheManager.createCache(cacheName, config);
 
-        cache.clear();
+        // 定义计算函数，模拟耗时操作
+        final AtomicInteger computeCount = new AtomicInteger(0);
+        Function<String, Integer> computeFunction = key -> {
+            try {
+                Thread.sleep(100); // 模拟耗时操作
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return computeCount.incrementAndGet();
+        };
 
-        assertNull(cache.get("user1"));
-        assertNull(cache.get("user2"));
-    }
+        // 多线程并发调用
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
 
-    @Test
-    public void testLock() throws InterruptedException {
-        assertTrue(cache.tryLock("lockKey", Duration.ofSeconds(5)));
+        String concurrentKey = "concurrent-key";
 
-        // 尝试在另一个线程获取同一个锁应该失败
-        Thread thread = new Thread(() -> {
-            assertFalse(cache.tryLock("lockKey", Duration.ofMillis(500)));
-        });
-        thread.start();
-        thread.join();
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    cache.computeIfAbsent(concurrentKey, computeFunction);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
 
-        // 释放锁
-        cache.unlock("lockKey");
+        // 等待所有线程完成
+        boolean completed = latch.await(5, TimeUnit.SECONDS);
+        assertTrue("All threads should complete in time", completed);
 
-        // 现在应该可以获取锁了
-        assertTrue(cache.tryLock("lockKey", Duration.ofSeconds(5)));
-        cache.unlock("lockKey");
-    }
+        // 计算函数应该只被调用一次
+        assertEquals("Only one thread should compute the value", 1, computeCount.get());
+        assertEquals("All threads should get the same value", Integer.valueOf(1), cache.get(concurrentKey));
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TestUser implements Serializable {
-        private String name;
-        private int age;
+        executor.shutdown();
     }
 }

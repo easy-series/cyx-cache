@@ -1,6 +1,7 @@
 package com.caoyixin.cache.builder;
 
 import com.caoyixin.cache.api.CacheManager;
+import com.caoyixin.cache.api.DistributedLock;
 import com.caoyixin.cache.consistency.ConsistencyStrategyFactory;
 import com.caoyixin.cache.consistency.DefaultConsistencyStrategyFactory;
 import com.caoyixin.cache.multilevel.MultiLevelCacheManager;
@@ -15,6 +16,7 @@ public class CacheManagerBuilder {
     private CacheManager remoteCacheManager;
     private CacheNotifier notifier;
     private ConsistencyStrategyFactory strategyFactory;
+    private DistributedLock distributedLock;
 
     /**
      * 设置本地缓存管理器
@@ -61,6 +63,14 @@ public class CacheManagerBuilder {
     }
 
     /**
+     * 设置分布式锁
+     */
+    public CacheManagerBuilder withDistributedLock(DistributedLock distributedLock) {
+        this.distributedLock = distributedLock;
+        return this;
+    }
+
+    /**
      * 构建缓存管理器
      *
      * @return 缓存管理器
@@ -79,7 +89,8 @@ public class CacheManagerBuilder {
                     localCacheManager,
                     remoteCacheManager,
                     notifier,
-                    strategyFactory);
+                    strategyFactory,
+                    distributedLock);
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.caoyixin.cache.redis;
 
-import com.caoyixin.cache.api.Cache;
-import com.caoyixin.cache.api.CacheStats;
+import com.caoyixin.cache.api.AbstractCache;
 import com.caoyixin.cache.exception.CacheException;
 import com.caoyixin.cache.serialization.KeyConvertor;
 import com.caoyixin.cache.serialization.ValueDecoder;
@@ -20,15 +19,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
- * 基于Redis的缓存实现
+ * 基于Redis的缓存实现，继承AbstractCache以复用通用逻辑
  *
  * @param <K> 键类型
  * @param <V> 值类型
  */
 @Slf4j
-public class RedisCache<K, V> implements Cache<K, V> {
+public class RedisCache<K, V> extends AbstractCache<K, V> {
 
-    private final String name;
     private final RedisTemplate<String, byte[]> redisTemplate;
     private final RedisConnectionFactory connectionFactory;
     private final KeyConvertor<K> keyConvertor;
@@ -36,7 +34,6 @@ public class RedisCache<K, V> implements Cache<K, V> {
     private final ValueDecoder<V> valueDecoder;
     private final Duration defaultExpiration;
     private final String keyPrefix;
-    private final CacheStats stats;
 
     /**
      * 创建Redis缓存
@@ -50,14 +47,15 @@ public class RedisCache<K, V> implements Cache<K, V> {
      * @param defaultExpiration 默认过期时间
      * @param keyPrefix         键前缀
      */
-    public RedisCache(String name, RedisTemplate<String, byte[]> redisTemplate,
-                      RedisConnectionFactory connectionFactory,
-                      KeyConvertor<K> keyConvertor,
-                      ValueEncoder<V> valueEncoder,
-                      ValueDecoder<V> valueDecoder,
-                      Duration defaultExpiration,
-                      String keyPrefix) {
-        this.name = name;
+    public RedisCache(String name,
+            RedisTemplate<String, byte[]> redisTemplate,
+            RedisConnectionFactory connectionFactory,
+            KeyConvertor<K> keyConvertor,
+            ValueEncoder<V> valueEncoder,
+            ValueDecoder<V> valueDecoder,
+            Duration defaultExpiration,
+            String keyPrefix) {
+        super(name);
         this.redisTemplate = redisTemplate;
         this.connectionFactory = connectionFactory;
         this.keyConvertor = keyConvertor;
@@ -65,66 +63,39 @@ public class RedisCache<K, V> implements Cache<K, V> {
         this.valueDecoder = valueDecoder;
         this.defaultExpiration = defaultExpiration;
         this.keyPrefix = keyPrefix;
-        this.stats = new CacheStats(name);
     }
 
     @Override
-    public V get(K key) {
-        if (key == null) {
+    protected V doGet(K key) {
+        String redisKey = buildRedisKey(key);
+        byte[] value = redisTemplate.opsForValue().get(redisKey);
+        if (value == null || value.length == 0) {
             return null;
         }
 
-        try {
-            String redisKey = buildRedisKey(key);
-            byte[] value = redisTemplate.opsForValue().get(redisKey);
-            if (value == null || value.length == 0) {
-                stats.recordMiss();
-                return null;
-            }
+        return valueDecoder.decode(value);
+    }
 
-            stats.recordHit();
-            return valueDecoder.decode(value);
-        } catch (Exception e) {
-            log.error("从Redis获取缓存值异常, cacheName={}, key={}", name, key, e);
-            stats.recordMiss();
-            throw new CacheException("从Redis获取缓存值异常: " + e.getMessage(), e);
+    @Override
+    protected void doPut(K key, V value, Duration ttl) {
+        String redisKey = buildRedisKey(key);
+        byte[] encodedValue = valueEncoder.encode(value);
+
+        Duration expiration = ttl;
+        if ((expiration == null || expiration.isZero() || expiration.isNegative())
+                && defaultExpiration != null && !defaultExpiration.isZero()) {
+            expiration = defaultExpiration;
+        }
+
+        if (expiration != null && !expiration.isZero() && !expiration.isNegative()) {
+            redisTemplate.opsForValue().set(redisKey, encodedValue, expiration);
+        } else {
+            redisTemplate.opsForValue().set(redisKey, encodedValue);
         }
     }
 
     @Override
-    public void put(K key, V value) {
-        put(key, value, defaultExpiration);
-    }
-
-    @Override
-    public void put(K key, V value, Duration ttl) {
-        if (key == null) {
-            return;
-        }
-
-        try {
-            String redisKey = buildRedisKey(key);
-            byte[] encodedValue = valueEncoder.encode(value);
-
-            if (ttl != null && !ttl.isZero() && !ttl.isNegative()) {
-                redisTemplate.opsForValue().set(redisKey, encodedValue, ttl);
-            } else if (defaultExpiration != null && !defaultExpiration.isZero()) {
-                redisTemplate.opsForValue().set(redisKey, encodedValue, defaultExpiration);
-            } else {
-                redisTemplate.opsForValue().set(redisKey, encodedValue);
-            }
-        } catch (Exception e) {
-            log.error("向Redis存储缓存值异常, cacheName={}, key={}", name, key, e);
-            throw new CacheException("向Redis存储缓存值异常: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void putAll(Map<? extends K, ? extends V> map) {
-        if (map == null || map.isEmpty()) {
-            return;
-        }
-
+    protected void doPutAll(Map<? extends K, ? extends V> map) {
         try (RedisConnection connection = RedisConnectionUtils.getConnection(connectionFactory)) {
             for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
                 String redisKey = buildRedisKey(entry.getKey());
@@ -139,24 +110,12 @@ public class RedisCache<K, V> implements Cache<K, V> {
                     connection.set(keyBytes, encodedValue);
                 }
             }
-        } catch (Exception e) {
-            log.error("向Redis批量存储缓存值异常, cacheName={}", name, e);
-            throw new CacheException("向Redis批量存储缓存值异常: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public V computeIfAbsent(K key, Function<K, V> loader) {
-        return computeIfAbsent(key, loader, defaultExpiration);
-    }
-
-    @Override
-    public V computeIfAbsent(K key, Function<K, V> loader, Duration ttl) {
-        if (key == null) {
-            return null;
-        }
-
-        V value = get(key);
+    protected V doComputeIfAbsent(K key, Function<K, V> loader, Duration ttl) {
+        V value = doGet(key);
         if (value != null) {
             return value;
         }
@@ -171,36 +130,24 @@ public class RedisCache<K, V> implements Cache<K, V> {
 
             if (locked) {
                 // 二次检查
-                value = get(key);
+                value = doGet(key);
                 if (value != null) {
                     return value;
                 }
 
                 // 加载数据
-                stats.recordLoadStart();
-                long startTime = System.currentTimeMillis();
-                try {
-                    value = loader.apply(key);
-                    if (value != null) {
-                        put(key, value, ttl);
-                        stats.recordLoadSuccess(System.currentTimeMillis() - startTime);
-                    } else {
-                        stats.recordLoadFailure();
-                    }
-                    return value;
-                } catch (Exception e) {
-                    stats.recordLoadFailure();
-                    log.error("加载缓存值异常, cacheName={}, key={}", name, key, e);
-                    throw e;
+                value = loader.apply(key);
+                if (value != null) {
+                    doPut(key, value, ttl);
                 }
+                return value;
             } else {
                 // 等待一段时间后再次尝试获取数据
                 Thread.sleep(100);
-                return get(key);
+                return doGet(key);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("获取分布式锁被中断, cacheName={}, key={}", name, key, e);
             throw new CacheException("获取分布式锁被中断", e);
         } finally {
             if (locked) {
@@ -210,98 +157,26 @@ public class RedisCache<K, V> implements Cache<K, V> {
     }
 
     @Override
-    public boolean remove(K key) {
-        if (key == null) {
-            return false;
-        }
-
-        try {
-            String redisKey = buildRedisKey(key);
-            Boolean result = redisTemplate.delete(redisKey);
-            return Boolean.TRUE.equals(result);
-        } catch (Exception e) {
-            log.error("从Redis删除缓存值异常, cacheName={}, key={}", name, key, e);
-            throw new CacheException("从Redis删除缓存值异常: " + e.getMessage(), e);
-        }
+    protected boolean doRemove(K key) {
+        String redisKey = buildRedisKey(key);
+        Boolean result = redisTemplate.delete(redisKey);
+        return Boolean.TRUE.equals(result);
     }
 
     @Override
-    public void clear() {
-        try {
-            String pattern = keyPrefix + name + ":*";
-            redisTemplate.delete(redisTemplate.keys(pattern));
-        } catch (Exception e) {
-            log.error("清空Redis缓存异常, cacheName={}", name, e);
-            throw new CacheException("清空Redis缓存异常: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public CacheStats stats() {
-        return stats;
-    }
-
-    @Override
-    public boolean tryLock(K key, Duration timeout) {
-        if (key == null) {
-            return false;
-        }
-
-        String lockKey = buildRedisKey(key) + ":lock";
-        try {
-            if (timeout == null || timeout.isZero() || timeout.isNegative()) {
-                Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, new byte[0], Duration.ofMinutes(5));
-                return Boolean.TRUE.equals(success);
-            } else {
-                Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, new byte[0], timeout);
-                return Boolean.TRUE.equals(success);
-            }
-        } catch (Exception e) {
-            log.error("获取Redis分布式锁异常, cacheName={}, key={}", name, key, e);
-            return false;
-        }
-    }
-
-    @Override
-    public void unlock(K key) {
-        if (key == null) {
-            return;
-        }
-
-        String lockKey = buildRedisKey(key) + ":lock";
-        try {
-            redisTemplate.delete(lockKey);
-        } catch (Exception e) {
-            log.error("释放Redis分布式锁异常, cacheName={}, key={}", name, key, e);
-        }
-    }
-
-    @Override
-    public boolean tryLockAndRun(K key, Duration timeout, Runnable action) {
-        if (tryLock(key, timeout)) {
-            try {
-                action.run();
-                return true;
-            } finally {
-                unlock(key);
-            }
-        }
-        return false;
+    protected void doClear() {
+        String pattern = keyPrefix + name + ":*";
+        redisTemplate.delete(redisTemplate.keys(pattern));
     }
 
     /**
      * 构建Redis键
      *
-     * @param key 原始键
+     * @param key 缓存键
      * @return Redis键
      */
     private String buildRedisKey(K key) {
-        String convertedKey = keyConvertor.convert(key);
-        return keyPrefix + name + ":" + convertedKey;
+        String keyStr = keyConvertor.convert(key);
+        return keyPrefix + name + ":" + keyStr;
     }
 }

@@ -1,22 +1,20 @@
 package com.caoyixin.cache.multilevel;
 
+import com.caoyixin.cache.api.AbstractCache;
+import com.caoyixin.cache.api.Cache;
+import com.caoyixin.cache.api.ConsistencyStrategy;
+import com.caoyixin.cache.api.DistributedLock;
+import com.caoyixin.cache.config.CacheConfig;
+import com.caoyixin.cache.notification.CacheEvent;
+import com.caoyixin.cache.notification.CacheNotifier;
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-
-import com.caoyixin.cache.api.AbstractCache;
-import com.caoyixin.cache.api.AdvancedCache;
-import com.caoyixin.cache.api.Cache;
-import com.caoyixin.cache.api.DistributedLock;
-import com.caoyixin.cache.config.CacheConfig;
-import com.caoyixin.cache.consistency.ConsistencyStrategy;
-import com.caoyixin.cache.notification.CacheEvent;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 多级缓存实现
@@ -25,13 +23,14 @@ import lombok.extern.slf4j.Slf4j;
  * @param <V> 值类型
  */
 @Slf4j
-public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements AdvancedCache<K, V> {
+public class MultiLevelCache<K, V> extends AbstractCache<K, V> {
 
     private final List<Cache<K, V>> caches;
     private final ConsistencyStrategy<K, V> consistencyStrategy;
     private final CacheConfig config;
     private final String instanceId;
     private final DistributedLock<K> distributedLock;
+    private final CacheNotifier notifier;
 
     /**
      * 创建多级缓存
@@ -47,7 +46,8 @@ public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements Advanc
             List<Cache<K, V>> caches,
             ConsistencyStrategy<K, V> consistencyStrategy,
             CacheConfig config,
-            DistributedLock<K> distributedLock) {
+            DistributedLock<K> distributedLock,
+            CacheNotifier cacheNotifier) {
         super(name);
 
         if (caches == null || caches.isEmpty() || caches.size() < 2) {
@@ -60,6 +60,7 @@ public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements Advanc
         this.config = config;
         this.instanceId = UUID.randomUUID().toString();
         this.distributedLock = distributedLock;
+        this.notifier = cacheNotifier;
     }
 
     @Override
@@ -70,6 +71,8 @@ public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements Advanc
     @Override
     protected void doPut(K key, V value, Duration ttl) {
         consistencyStrategy.put(key, value, ttl);
+
+        notifier.notifyAdd(getName(), key);
     }
 
     @Override
@@ -84,52 +87,17 @@ public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements Advanc
 
     @Override
     protected boolean doRemove(K key) {
-        return consistencyStrategy.remove(key);
+        boolean remove = consistencyStrategy.remove(key);
+        if (remove) {
+            notifier.notifyRemove(getName(), key);
+        }
+        return remove;
     }
 
     @Override
     protected void doClear() {
         consistencyStrategy.clear();
-    }
-
-    @Override
-    public CompletableFuture<V> getAsync(K key) {
-        return CompletableFuture.supplyAsync(() -> get(key));
-    }
-
-    @Override
-    public DistributedLock<K> getDistributedLock() {
-        return distributedLock;
-    }
-
-    @Override
-    public void preload(Function<String, Iterable<K>> loader) {
-        if (loader == null) {
-            return;
-        }
-
-        Iterable<K> keys = loader.apply(getName());
-        if (keys == null) {
-            return;
-        }
-
-        for (K key : keys) {
-            try {
-                get(key);
-            } catch (Exception e) {
-                log.warn("预加载缓存键失败: {}", key, e);
-            }
-        }
-    }
-
-    @Override
-    public long getExpireTime(K key) {
-        // 获取最后一个缓存（通常是远程缓存）的过期时间
-        Cache<K, V> lastCache = caches.get(caches.size() - 1);
-        if (lastCache instanceof AdvancedCache) {
-            return ((AdvancedCache<K, V>) lastCache).getExpireTime(key);
-        }
-        return -1;
+        notifier.notifyRemove(getName(), null);
     }
 
     /**
@@ -151,21 +119,4 @@ public class MultiLevelCache<K, V> extends AbstractCache<K, V> implements Advanc
         }
     }
 
-    /**
-     * 获取实例ID
-     *
-     * @return 实例ID
-     */
-    public String getInstanceId() {
-        return instanceId;
-    }
-
-    /**
-     * 获取缓存列表
-     *
-     * @return 缓存列表
-     */
-    public List<Cache<K, V>> getCaches() {
-        return new ArrayList<>(caches);
-    }
 }

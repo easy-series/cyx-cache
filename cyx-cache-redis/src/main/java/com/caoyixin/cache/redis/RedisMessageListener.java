@@ -1,6 +1,5 @@
 package com.caoyixin.cache.redis;
 
-import com.caoyixin.cache.multilevel.MultiLevelCacheManager;
 import com.caoyixin.cache.notification.CacheEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -20,33 +19,35 @@ public class RedisMessageListener implements MessageListener {
 
     private final RedisMessageListenerContainer listenerContainer;
     private final RedisTemplate<String, String> redisTemplate;
-    private final MultiLevelCacheManager cacheManager;
     private final String topicPrefix;
-    private final String instanceId;
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, Boolean> subscribedTopics = new ConcurrentHashMap<>();
+    private RedisCacheNotifier cacheNotifier;
 
     /**
      * 创建Redis消息监听器
      *
      * @param listenerContainer Redis消息监听容器
      * @param redisTemplate     Redis模板
-     * @param cacheManager      缓存管理器
      * @param topicPrefix       主题前缀
-     * @param instanceId        实例ID
      */
     public RedisMessageListener(RedisMessageListenerContainer listenerContainer,
                                 RedisTemplate<String, String> redisTemplate,
-                                MultiLevelCacheManager cacheManager,
-                                String topicPrefix,
-                                String instanceId) {
+            String topicPrefix) {
         this.listenerContainer = listenerContainer;
         this.redisTemplate = redisTemplate;
-        this.cacheManager = cacheManager;
         this.topicPrefix = topicPrefix != null ? topicPrefix : "cyx-cache";
-        this.instanceId = instanceId;
         this.objectMapper = new ObjectMapper();
-        log.info("初始化RedisMessageListener, instanceId={}, topicPrefix={}", instanceId, this.topicPrefix);
+        log.info("初始化RedisMessageListener, topicPrefix={}", this.topicPrefix);
+    }
+
+    /**
+     * 设置缓存通知器，用于分发事件
+     *
+     * @param cacheNotifier 缓存通知器
+     */
+    public void setCacheNotifier(RedisCacheNotifier cacheNotifier) {
+        this.cacheNotifier = cacheNotifier;
     }
 
     /**
@@ -85,17 +86,14 @@ public class RedisMessageListener implements MessageListener {
         try {
             CacheEvent event = objectMapper.readValue(body, CacheEvent.class);
 
-            // 忽略自己发送的消息
-            if (instanceId.equals(event.getInstanceId())) {
-                return;
-            }
-
             log.debug("收到Redis消息: channel={}, eventType={}, cacheName={}, key={}",
                     redisTemplate.getStringSerializer().deserialize(message.getChannel()),
                     event.getEventType(), event.getCacheName(), event.getKey());
 
-            // 转发事件到缓存管理器
-            cacheManager.handleCacheUpdateEvent(event);
+            // 分发事件到缓存通知器
+            if (cacheNotifier != null) {
+                cacheNotifier.dispatchEvent(event);
+            }
         } catch (IOException e) {
             log.error("解析Redis消息失败", e);
         } catch (Exception e) {

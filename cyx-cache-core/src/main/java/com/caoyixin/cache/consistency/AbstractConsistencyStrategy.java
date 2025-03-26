@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import com.caoyixin.cache.api.Cache;
+import com.caoyixin.cache.api.ConsistencyStrategy;
 import com.caoyixin.cache.notification.CacheEvent;
 
 import lombok.extern.slf4j.Slf4j;

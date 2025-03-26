@@ -13,6 +13,11 @@ public interface CacheNotifier {
     void notifyUpdate(String cacheName, Object key);
 
     /**
+     * 通知缓存添加
+     */
+    void notifyAdd(String cacheName, Object key);
+
+    /**
      * 通知缓存移除
      *
      * @param cacheName 缓存名称

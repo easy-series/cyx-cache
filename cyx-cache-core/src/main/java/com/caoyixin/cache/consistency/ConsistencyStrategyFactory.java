@@ -15,14 +15,6 @@ public interface ConsistencyStrategyFactory {
     /**
      * 创建一致性策略
      *
-     * @param config 缓存配置
-     * @return 一致性策略实例
-     */
-    <K, V> ConsistencyStrategy<K, V> createStrategy(CacheConfig config, List<Cache<K, V>> caches);
-
-    /**
-     * 创建一致性策略
-     *
      * @param type   一致性策略类型
      * @param caches 缓存列表
      * @param <K>    键类型

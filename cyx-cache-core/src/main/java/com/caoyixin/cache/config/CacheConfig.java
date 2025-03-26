@@ -1,13 +1,11 @@
 package com.caoyixin.cache.config;
 
-import java.time.Duration;
-
 import com.caoyixin.cache.api.CacheType;
-import com.caoyixin.cache.consistency.ConsistencyMode;
 import com.caoyixin.cache.enums.ConsistencyType;
-
 import lombok.Builder;
 import lombok.Data;
+
+import java.time.Duration;
 
 /**
  * 缓存配置类
@@ -40,13 +38,9 @@ public class CacheConfig {
      */
     private Duration localExpire;
     /**
-     * 一致性模式
-     */
-    private ConsistencyMode consistencyMode = ConsistencyMode.WRITE_THROUGH;
-    /**
      * 一致性类型
      */
-    private ConsistencyType consistencyType;
+    private ConsistencyType consistencyType = ConsistencyType.WRITE_THROUGH;
     /**
      * 是否同步本地缓存
      */
@@ -78,16 +72,6 @@ public class CacheConfig {
     private RefreshPolicy refreshPolicy;
 
     /**
-     * 本地缓存配置
-     */
-    private LocalCacheConfig localConfig;
-
-    /**
-     * 远程缓存配置
-     */
-    private RemoteCacheConfig remoteConfig;
-
-    /**
      * 获取缓存最大容量
      *
      * @return 缓存最大容量
@@ -96,46 +80,4 @@ public class CacheConfig {
         return localLimit;
     }
 
-    /**
-     * 获取一致性类型
-     *
-     * @return 一致性类型
-     */
-    public ConsistencyType getConsistencyType() {
-        if (consistencyType != null) {
-            return consistencyType;
-        }
-
-        // 从ConsistencyMode映射到ConsistencyType
-        switch (consistencyMode) {
-            case WRITE_THROUGH:
-                return ConsistencyType.WRITE_THROUGH;
-            case WRITE_BACK:
-                return ConsistencyType.WRITE_BACK;
-            case READ_ONLY:
-                return ConsistencyType.READ_ONLY;
-            default:
-                return ConsistencyType.WRITE_THROUGH;
-        }
-    }
-
-    /**
-     * 获取本地缓存配置，如果不存在则创建默认配置
-     */
-    public LocalCacheConfig getLocalConfig() {
-        if (localConfig == null && (cacheType == CacheType.LOCAL || cacheType == CacheType.BOTH)) {
-            localConfig = LocalCacheConfig.builder().build();
-        }
-        return localConfig;
-    }
-
-    /**
-     * 获取远程缓存配置，如果不存在则创建默认配置
-     */
-    public RemoteCacheConfig getRemoteConfig() {
-        if (remoteConfig == null && (cacheType == CacheType.REMOTE || cacheType == CacheType.BOTH)) {
-            remoteConfig = RemoteCacheConfig.builder().build();
-        }
-        return remoteConfig;
-    }
 }

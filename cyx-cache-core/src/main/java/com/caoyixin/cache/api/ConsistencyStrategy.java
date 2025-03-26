@@ -1,18 +1,27 @@
 package com.caoyixin.cache.api;
 
-import com.caoyixin.cache.notification.CacheEvent;
-
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.caoyixin.cache.notification.CacheEvent;
+
 /**
  * 缓存一致性策略接口
+ * 定义多个缓存层次之间的一致性保证方式
  *
  * @param <K> 键类型
  * @param <V> 值类型
  */
 public interface ConsistencyStrategy<K, V> {
+
+    /**
+     * 初始化策略
+     * 
+     * @param caches 缓存列表，从L1到Ln顺序排列
+     */
+    void initialize(List<Cache<K, V>> caches);
 
     /**
      * 获取缓存值
@@ -67,4 +76,11 @@ public interface ConsistencyStrategy<K, V> {
      * @param event 缓存事件
      */
     void handleCacheUpdate(CacheEvent event);
+
+    /**
+     * 获取策略名称
+     * 
+     * @return 策略名称
+     */
+    String getName();
 }

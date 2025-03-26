@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
@@ -235,54 +234,6 @@ public class SimpleCache<K, V> implements Cache<K, V> {
      */
     private void updateStats() {
         stats.updateSize(cacheMap.size());
-    }
-
-    @Override
-    public boolean tryLock(K key, Duration timeout) {
-        if (key == null) {
-            return false;
-        }
-
-        Lock lock = lockMap.computeIfAbsent(key, k -> new ReentrantLock());
-        try {
-            if (timeout == null || timeout.isZero() || timeout.isNegative()) {
-                return lock.tryLock();
-            } else {
-                return lock.tryLock(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-
-    @Override
-    public void unlock(K key) {
-        if (key == null) {
-            return;
-        }
-
-        Lock lock = lockMap.get(key);
-        if (lock != null) {
-            try {
-                lock.unlock();
-            } catch (IllegalMonitorStateException e) {
-                // 忽略未持有锁的异常
-            }
-        }
-    }
-
-    @Override
-    public boolean tryLockAndRun(K key, Duration timeout, Runnable action) {
-        if (tryLock(key, timeout)) {
-            try {
-                action.run();
-                return true;
-            } finally {
-                unlock(key);
-            }
-        }
-        return false;
     }
 
     /**

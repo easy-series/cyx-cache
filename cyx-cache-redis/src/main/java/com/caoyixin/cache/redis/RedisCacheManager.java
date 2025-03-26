@@ -3,6 +3,7 @@ package com.caoyixin.cache.redis;
 import com.caoyixin.cache.api.Cache;
 import com.caoyixin.cache.api.CacheManager;
 import com.caoyixin.cache.api.CacheType;
+import com.caoyixin.cache.api.DistributedLock;
 import com.caoyixin.cache.config.CacheConfig;
 import com.caoyixin.cache.exception.CacheException;
 import com.caoyixin.cache.serialization.*;
@@ -11,18 +12,20 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Redis缓存管理器
+ * Redis缓存管理器，同时实现分布式锁功能
  */
 @Slf4j
-public class RedisCacheManager implements CacheManager {
+public class RedisCacheManager implements CacheManager, DistributedLock<Object> {
 
     private final RedisConnectionFactory connectionFactory;
     private final RedisTemplate<String, byte[]> redisTemplate;
+    private final RedisTemplate<String, String> stringRedisTemplate;
     private final String keyPrefix;
     private final Map<String, Cache<?, ?>> caches = new ConcurrentHashMap<>();
     private final Map<String, KeyConvertor<?>> keyConvertors = new ConcurrentHashMap<>();
@@ -39,6 +42,7 @@ public class RedisCacheManager implements CacheManager {
         this.connectionFactory = connectionFactory;
         this.keyPrefix = keyPrefix == null ? "" : keyPrefix;
         this.redisTemplate = createRedisTemplate();
+        this.stringRedisTemplate = createStringRedisTemplate();
 
         // 注册默认的键转换器
         registerKeyConvertor("string", new StringKeyConvertor<Object>());
@@ -47,7 +51,7 @@ public class RedisCacheManager implements CacheManager {
 
         // 注册默认的值编码器和解码器
         registerValueCodec("java", new JavaValueEncoder(), new JavaValueDecoder());
-        registerValueCodec("jackson", new Jackson2ValueEncoder<Object>(), new Jackson2ValueDecoder<>(Object.class));
+        registerValueCodec("jackson", new Jackson2ValueEncoder<>(), new Jackson2ValueDecoder<>(Object.class));
 
         log.info("初始化RedisCacheManager, keyPrefix={}", this.keyPrefix);
     }
@@ -64,6 +68,20 @@ public class RedisCacheManager implements CacheManager {
         template.setValueSerializer(RedisValueSerializer.INSTANCE);
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(RedisValueSerializer.INSTANCE);
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    /**
+     * 创建字符串Redis模板
+     *
+     * @return 字符串Redis模板
+     */
+    private RedisTemplate<String, String> createStringRedisTemplate() {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
         template.afterPropertiesSet();
         return template;
     }
@@ -153,14 +171,48 @@ public class RedisCacheManager implements CacheManager {
         // 连接工厂由Spring管理，不需要关闭
     }
 
+    @Override
+    public boolean tryLock(Object key, Duration timeout) {
+        if (key == null) {
+            return false;
+        }
+
+        String lockKey = buildLockKey(key);
+        try {
+            Duration lockDuration = timeout != null && !timeout.isZero() && !timeout.isNegative()
+                    ? timeout
+                    : Duration.ofMinutes(5);
+
+            Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, "1", lockDuration);
+            return Boolean.TRUE.equals(success);
+        } catch (Exception e) {
+            log.error("获取Redis分布式锁异常, key={}", key, e);
+            return false;
+        }
+    }
+
+    @Override
+    public void unlock(Object key) {
+        if (key == null) {
+            return;
+        }
+
+        String lockKey = buildLockKey(key);
+        try {
+            stringRedisTemplate.delete(lockKey);
+        } catch (Exception e) {
+            log.error("释放Redis分布式锁异常, key={}", key, e);
+        }
+    }
+
     /**
      * 验证缓存类型
      *
      * @param config 缓存配置
      */
     private void validateCacheType(CacheConfig config) {
-        if (config.getCacheType() != CacheType.REMOTE) {
-            throw new IllegalArgumentException("RedisCacheManager仅支持REMOTE类型的缓存，当前类型: " + config.getCacheType());
+        if (config.getCacheType() != CacheType.REMOTE && config.getCacheType() != CacheType.BOTH) {
+            throw new IllegalArgumentException("RedisCacheManager仅支持REMOTE、BOTH类型的缓存，当前类型: " + config.getCacheType());
         }
     }
 
@@ -205,5 +257,15 @@ public class RedisCacheManager implements CacheManager {
                 valueDecoder,
                 config.getExpire(),
                 keyPrefix);
+    }
+
+    /**
+     * 构建锁的键
+     *
+     * @param key 原始键
+     * @return 锁键
+     */
+    private String buildLockKey(Object key) {
+        return keyPrefix + "lock:" + key.toString();
     }
 }

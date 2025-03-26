@@ -175,7 +175,7 @@ public class WriteThroughStrategy<K, V> extends AbstractConsistencyStrategy<K, V
      * @param value      缓存值
      * @param foundIndex 找到值的缓存索引
      */
-    private void backfillToLowerLevelCaches(K key, V value, int foundIndex) {
+    public void backfillToLowerLevelCaches(K key, V value, int foundIndex) {
         // 将值回填到前面级别的缓存中
         for (int j = 0; j < foundIndex; j++) {
             try {
