@@ -1,23 +1,24 @@
 package com.caoyixin.cache.config;
 
+import java.time.Duration;
+
 import com.caoyixin.cache.api.CacheType;
 import com.caoyixin.cache.consistency.ConsistencyMode;
 import com.caoyixin.cache.enums.ConsistencyType;
-import lombok.Getter;
-import lombok.Setter;
 
-import java.time.Duration;
+import lombok.Builder;
+import lombok.Data;
 
 /**
- * 缓存配置
+ * 缓存配置类
  */
-@Getter
-@Setter
+@Data
+@Builder
 public class CacheConfig {
     /**
      * 缓存名称
      */
-    private String name;
+    private final String name;
 
     /**
      * 过期时间
@@ -27,6 +28,7 @@ public class CacheConfig {
     /**
      * 缓存类型
      */
+    @Builder.Default
     private CacheType cacheType = CacheType.REMOTE;
 
     /**
@@ -64,6 +66,7 @@ public class CacheConfig {
     /**
      * 是否启用缓存统计
      */
+    @Builder.Default
     private boolean statsEnabled = true;
     /**
      * 是否防止缓存击穿
@@ -75,14 +78,14 @@ public class CacheConfig {
     private RefreshPolicy refreshPolicy;
 
     /**
-     * 创建缓存配置构建器
-     *
-     * @param name 缓存名称
-     * @return 构建器
+     * 本地缓存配置
      */
-    public static Builder newBuilder(String name) {
-        return new Builder(name);
-    }
+    private LocalCacheConfig localConfig;
+
+    /**
+     * 远程缓存配置
+     */
+    private RemoteCacheConfig remoteConfig;
 
     /**
      * 获取缓存最大容量
@@ -117,116 +120,22 @@ public class CacheConfig {
     }
 
     /**
-     * 获取本地缓存配置
-     *
-     * @return 本地缓存配置
+     * 获取本地缓存配置，如果不存在则创建默认配置
      */
-    public CacheConfig localConfig() {
-        CacheConfig config = new CacheConfig();
-        config.setName(this.name + ":local");
-        config.setCacheType(CacheType.LOCAL);
-        config.setLocalLimit(this.localLimit);
-        config.setExpire(this.localExpire != null ? this.localExpire : this.expire);
-        config.setKeyConvertor(this.keyConvertor);
-        config.setValueEncoder(this.valueEncoder);
-        config.setValueDecoder(this.valueDecoder);
-        config.setStatsEnabled(this.statsEnabled);
-        config.setPenetrationProtect(this.penetrationProtect);
-        config.setRefreshPolicy(this.refreshPolicy);
-        return config;
+    public LocalCacheConfig getLocalConfig() {
+        if (localConfig == null && (cacheType == CacheType.LOCAL || cacheType == CacheType.BOTH)) {
+            localConfig = LocalCacheConfig.builder().build();
+        }
+        return localConfig;
     }
 
     /**
-     * 获取远程缓存配置
-     *
-     * @return 远程缓存配置
+     * 获取远程缓存配置，如果不存在则创建默认配置
      */
-    public CacheConfig remoteConfig() {
-        CacheConfig config = new CacheConfig();
-        config.setName(this.name + ":remote");
-        config.setCacheType(CacheType.REMOTE);
-        config.setExpire(this.expire);
-        config.setKeyConvertor(this.keyConvertor);
-        config.setValueEncoder(this.valueEncoder);
-        config.setValueDecoder(this.valueDecoder);
-        config.setStatsEnabled(this.statsEnabled);
-        config.setPenetrationProtect(this.penetrationProtect);
-        config.setRefreshPolicy(this.refreshPolicy);
-        return config;
-    }
-
-    /**
-     * 缓存配置构建器
-     */
-    public static class Builder {
-        private final CacheConfig config = new CacheConfig();
-
-        public Builder(String name) {
-            config.name = name;
+    public RemoteCacheConfig getRemoteConfig() {
+        if (remoteConfig == null && (cacheType == CacheType.REMOTE || cacheType == CacheType.BOTH)) {
+            remoteConfig = RemoteCacheConfig.builder().build();
         }
-
-        public Builder cacheType(CacheType cacheType) {
-            config.cacheType = cacheType;
-            return this;
-        }
-
-        public Builder expire(Duration expire) {
-            config.expire = expire;
-            return this;
-        }
-
-        public Builder localExpire(Duration localExpire) {
-            config.localExpire = localExpire;
-            return this;
-        }
-
-        public Builder localLimit(int localLimit) {
-            config.localLimit = localLimit;
-            return this;
-        }
-
-        public Builder consistencyMode(ConsistencyMode mode) {
-            config.consistencyMode = mode;
-            return this;
-        }
-
-        public Builder syncLocal(boolean syncLocal) {
-            config.syncLocal = syncLocal;
-            return this;
-        }
-
-        public Builder keyConvertor(String keyConvertor) {
-            config.keyConvertor = keyConvertor;
-            return this;
-        }
-
-        public Builder valueEncoder(String valueEncoder) {
-            config.valueEncoder = valueEncoder;
-            return this;
-        }
-
-        public Builder valueDecoder(String valueDecoder) {
-            config.valueDecoder = valueDecoder;
-            return this;
-        }
-
-        public Builder statsEnabled(boolean statsEnabled) {
-            config.statsEnabled = statsEnabled;
-            return this;
-        }
-
-        public Builder penetrationProtect(boolean penetrationProtect) {
-            config.penetrationProtect = penetrationProtect;
-            return this;
-        }
-
-        public Builder refreshPolicy(RefreshPolicy refreshPolicy) {
-            config.refreshPolicy = refreshPolicy;
-            return this;
-        }
-
-        public CacheConfig build() {
-            return config;
-        }
+        return remoteConfig;
     }
 }

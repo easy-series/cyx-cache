@@ -1,14 +1,13 @@
 package com.caoyixin.cache.consistency;
 
-import com.caoyixin.cache.api.Cache;
-import com.caoyixin.cache.api.ConsistencyStrategy;
-import com.caoyixin.cache.notification.CacheEvent;
-import lombok.extern.slf4j.Slf4j;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+
+import com.caoyixin.cache.api.Cache;
+import com.caoyixin.cache.notification.CacheEvent;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 写同步策略实现，所有写操作同时写入所有级别的缓存
@@ -17,9 +16,7 @@ import java.util.function.Function;
  * @param <V> 值类型
  */
 @Slf4j
-public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
-
-    private final List<Cache<K, V>> caches;
+public class WriteThroughStrategy<K, V> extends AbstractConsistencyStrategy<K, V> {
 
     /**
      * 创建写同步策略
@@ -34,9 +31,46 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
     }
 
     @Override
+    public String getName() {
+        return "WriteThrough";
+    }
+
+    @Override
+    public V get(K key) {
+        if (key == null || caches.isEmpty()) {
+            return null;
+        }
+
+        V value = null;
+
+        // 从L1开始查找，直到找到值
+        for (int i = 0; i < caches.size(); i++) {
+            Cache<K, V> cache = caches.get(i);
+            try {
+                value = cache.get(key);
+                if (value != null) {
+                    // 将值回填到前面级别的缓存
+                    backfillToLowerLevelCaches(key, value, i);
+                    return value;
+                }
+            } catch (Exception e) {
+                log.error("从缓存读取失败, cacheName={}, key={}", cache.getName(), key, e);
+            }
+        }
+
+        return value;
+    }
+
+    @Override
     public void put(K key, V value, Duration ttl) {
-        // 写入所有缓存
-        for (Cache<K, V> cache : caches) {
+        if (key == null || value == null || caches.isEmpty()) {
+            return;
+        }
+
+        // 写入所有缓存，从后往前写入
+        // 这样保证即使过程中出现故障，本地缓存也不会保存远程缓存没有的数据
+        for (int i = caches.size() - 1; i >= 0; i--) {
+            Cache<K, V> cache = caches.get(i);
             try {
                 if (ttl != null) {
                     cache.put(key, value, ttl);
@@ -51,8 +85,13 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> map) {
-        // 写入所有缓存
-        for (Cache<K, V> cache : caches) {
+        if (map == null || map.isEmpty() || caches.isEmpty()) {
+            return;
+        }
+
+        // 写入所有缓存，从后往前写入
+        for (int i = caches.size() - 1; i >= 0; i--) {
+            Cache<K, V> cache = caches.get(i);
             try {
                 cache.putAll(map);
             } catch (Exception e) {
@@ -62,57 +101,16 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
     }
 
     @Override
-    public V get(K key) {
-        V value = null;
-
-        // 从L1开始查找，直到找到值
-        for (int i = 0; i < caches.size(); i++) {
-            Cache<K, V> cache = caches.get(i);
-            try {
-                value = cache.get(key);
-                if (value != null) {
-                    // 将值回填到前面级别的缓存
-                    fillValueToLowerLevelCaches(key, value, i);
-                    return value;
-                }
-            } catch (Exception e) {
-                log.error("从缓存读取失败, cacheName={}, key={}", cache.getName(), key, e);
-            }
-        }
-
-        return value;
-    }
-
-    @Override
-    public V computeIfAbsent(K key, Function<K, V> loader, Duration ttl) {
-        V value = null;
-
-        // 首先检查缓存
-        value = get(key);
-        if (value != null) {
-            return value;
-        }
-
-        // 缓存中不存在，使用loader加载
-        try {
-            value = loader.apply(key);
-            if (value != null) {
-                // 写入所有缓存
-                put(key, value, ttl);
-            }
-            return value;
-        } catch (Exception e) {
-            log.error("加载缓存值失败, key={}", key, e);
-            throw e;
-        }
-    }
-
-    @Override
     public boolean remove(K key) {
+        if (key == null || caches.isEmpty()) {
+            return false;
+        }
+
         boolean removed = false;
 
-        // 从所有缓存中删除
-        for (Cache<K, V> cache : caches) {
+        // 从所有缓存中删除，从后往前删除
+        for (int i = caches.size() - 1; i >= 0; i--) {
+            Cache<K, V> cache = caches.get(i);
             try {
                 boolean result = cache.remove(key);
                 if (result) {
@@ -128,8 +126,13 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
 
     @Override
     public void clear() {
-        // 清空所有缓存
-        for (Cache<K, V> cache : caches) {
+        if (caches.isEmpty()) {
+            return;
+        }
+
+        // 清空所有缓存，从后往前清空
+        for (int i = caches.size() - 1; i >= 0; i--) {
+            Cache<K, V> cache = caches.get(i);
             try {
                 cache.clear();
             } catch (Exception e) {
@@ -172,7 +175,7 @@ public class WriteThroughStrategy<K, V> implements ConsistencyStrategy<K, V> {
      * @param value      缓存值
      * @param foundIndex 找到值的缓存索引
      */
-    private void fillValueToLowerLevelCaches(K key, V value, int foundIndex) {
+    private void backfillToLowerLevelCaches(K key, V value, int foundIndex) {
         // 将值回填到前面级别的缓存中
         for (int j = 0; j < foundIndex; j++) {
             try {
